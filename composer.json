@@ -1,0 +1,48 @@
+{
+  "name": "steffjenl/laravel-signhost",
+  "description": "Laravel package for Signhost",
+  "type": "library",
+  "keywords": [
+    "ondertekenen",
+    "signhost",
+    "client",
+    "laravel",
+    "api"
+  ],
+  "homepage": "http://github.com/steffjenl/laravel-signhost",
+  "license": "MIT",
+  "authors": [
+    {
+      "name":  "Stèphan Eizinga",
+      "email": "stephan.eizinga@gmail.com",
+      "role":  "Developer"
+    }
+  ],
+  "require": {
+    "php": ">=7.0.0",
+    "illuminate/support": ">=5.4.0"
+  },
+  "require-dev": {
+    "mockery/mockery": "0.8.0",
+    "phpunit/PHPUnit": "3.7.25",
+    "squizlabs/php_codesniffer": "1.4.6"
+  },
+  "suggest": {
+    "ext-curl": "Allows usage of cURL transport adapter"
+  },
+  "autoload": {
+    "psr-0": {
+      "Signhost": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Signhost\\SignhostServiceProvider"
+      ],
+      "aliases": {
+        "Signhost": "Signhost\\Facade"
+      }
+    }
+  }
+}
