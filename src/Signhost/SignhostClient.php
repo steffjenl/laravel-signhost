@@ -58,6 +58,9 @@ class SignhostClient
      */
     public function execute($endpoint, $method, $data = null, $filePath = null, $headers = [])
     {
+        // get defailt headers
+        $headers = $this->headers;
+        // Initialize a cURL session
         $ch = curl_init($this->rootUrl . $endpoint);
         // Set methode actions
         $ch = $this->setExecuteMethode($ch, $method, $data, $filePath);
@@ -70,13 +73,15 @@ class SignhostClient
             curl_setopt($ch, CURLOPT_INFILE, $fh);
             // calculate file Checksum
             $fileChecksum = $this->calculateFileChecsum($filePath);
+            // replace Content-Type header with application/pdf
+            $headers = array_replace($headers,[0 => "Content-Type: application/pdf"]);
             // merge filechecksum with other headers
             $headers = array_merge($headers,["Digest: SHA256=" . $fileChecksum]);
         }
         // Set default curl options for better security and performance
         $ch = $this->setDefaultCurlOptions($ch);
         // Set Authorisation headers
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array_merge($this->headers, $headers));
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         // execute curl command
         $response = curl_exec($ch);
         // when $fh is set for file upload we must close it for free up memory and remove any lock
@@ -160,12 +165,12 @@ class SignhostClient
             // decode message from json string
             $object = json_decode($response);
             // when there is a message throw a message.
-            if (!isset($object->Message)) {
+            if (!empty($object->Message)) {
                 $message = $object->Message;
             }
-            throw new SignhostException($message);
+            throw new SignhostException("Signhost reports:" . $message);
         } else if ($firstChar == '5') {
-            throw new SignhostException("Internal Server Error on signhost server.");
+            throw new SignhostException("Signhost reports:" . "Internal Server Error on signhost server.");
         }
 
         return false;
@@ -173,6 +178,7 @@ class SignhostClient
 
     /**
      * Calculate hash checksum for file upload
+     * 
      * @param $filePath
      * @return string
      */
