@@ -28,6 +28,7 @@ class SignhostClient
 
     /**
      * SignHost constructor.
+     *
      * @param string $appName
      * @param string $appKey
      * @param string $apiKey
@@ -45,61 +46,94 @@ class SignhostClient
     }
 
     /**
+     * Execute function
+     *
      * @param $endpoint
-     * @param $methode
+     * @param $method
      * @param null $data
-     * @param null $filecontent
+     * @param null $filePath
      * @param array $headers
      * @return mixed
      * @throws SignHostException
      */
-    public function execute($endpoint, $methode, $data = null, $filecontent = null, $headers = [])
+    public function execute($endpoint, $method, $data = null, $filePath = null, $headers = [])
     {
         $ch = curl_init($this->rootUrl . $endpoint);
-        // get latest cabundle
-        $latestBundle = (new RemoteFetch())->getLatestBundle();
-        //
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_FRESH_CONNECT, 1);
-        // Verify SSL connection is required
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-        curl_setopt($ch, CURLOPT_CAINFO, $latestBundle->getFilePath());
+        // Set methode actions
+        $ch = $this->setExecuteMethode($ch, $method, $data, $filePath);
+        // when $filePath is set we must open the file for curl
+        if (isset($filePath))
+        {
+            // open file handler
+            $fh = fopen($filePath, 'r');
+            // bind file handler and curl handler
+            curl_setopt($ch, CURLOPT_INFILE, $fh);
+            // calculate file Checksum
+            $fileChecksum = $this->calculateFileChecsum($filePath);
+            // merge filechecksum with other headers
+            $headers = array_merge($headers,["Digest: SHA256=" . $fileChecksum]);
+        }
+        // Set default curl options for better security and performance
+        $ch = $this->setDefaultCurlOptions($ch);
         // Set Authorisation headers
         curl_setopt($ch, CURLOPT_HTTPHEADER, array_merge($this->headers, $headers));
-        // Set methode actions
-        $ch = $this->setExecuteMethode($ch, $methode, $data, $filecontent);
         // execute curl command
         $response = curl_exec($ch);
-        // check http response code
-        if ($this->checkHTTPStatusCode(curl_getinfo($ch, CURLINFO_HTTP_CODE), $response) === false) {
-            throw new SignhostException("Internal Server Error on endpoint " . $endpoint);
+        // when $fh is set for file upload we must close it for free up memory and remove any lock
+        if (isset($fh))
+        {
+            // close file handler
+            fclose($fh);
         }
-
+        // check http response code
+        $this->checkHTTPStatusCode(curl_getinfo($ch, CURLINFO_HTTP_CODE), $response);
+        // return response
         return $response;
     }
 
     /**
+     * setDefaultCurlOptions will set default secure curl options
+     *
      * @param $curl
-     * @param string $methode
-     * @param mixed $data
-     * @param mixed $file
      * @return mixed
      */
-    private function setExecuteMethode($curl, $methode, $data = null, $file = null)
+    private function setDefaultCurlOptions($curl)
     {
-        if ($methode == 'DELETE') {
+        // get latest cabundle
+        $latestBundle = (new RemoteFetch())->getLatestBundle();
+        //
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curl, CURLOPT_FRESH_CONNECT, 1);
+        // Verify SSL connection is required
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
+        curl_setopt($curl, CURLOPT_CAINFO, $latestBundle->getFilePath());
+
+        return $curl;
+    }
+
+    /**
+     * setExecuteMethode will set curl options
+     *
+     * @param $curl
+     * @param string $method
+     * @param mixed $data
+     * @param mixed $filePath
+     * @return mixed
+     */
+    private function setExecuteMethode($curl, $method, $data = null, $filePath = null)
+    {
+        if ($method == 'DELETE') {
             curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "DELETE");
-        } else if ((empty($data) && empty($file)) && $methode == 'PUT') {
+        } else if ((empty($data) && empty($file)) && $method == 'PUT') {
             curl_setopt($curl, CURLOPT_PUT, 1);
-        } else if ((!empty($data) && empty($file)) && $methode == 'PUT') {
+        } else if ((!empty($data) && empty($file)) && $method == 'PUT') {
             curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "PUT");
             curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
-        } else if ((empty($data) && !empty($file)) && $methode == 'PUT') {
+        } else if ((empty($data) && !empty($file)) && $method == 'PUT') {
             curl_setopt($curl, CURLOPT_PUT, 1);
-            curl_setopt($curl, CURLOPT_INFILE, $file['handler']);
-            curl_setopt($curl, CURLOPT_INFILESIZE, $file['size']);
-        } else if ($methode == 'POST') {
+            curl_setopt($curl, CURLOPT_INFILESIZE, filesize($filePath));
+        } else if ($method == 'POST') {
             curl_setopt($curl, CURLOPT_POST, 1);
             curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
         }
@@ -108,6 +142,8 @@ class SignhostClient
     }
 
     /**
+     * Check http status code for errors
+     *
      * @param string $statusCode
      * @param string $response
      * @return bool
@@ -124,12 +160,24 @@ class SignhostClient
             // decode message from json string
             $object = json_decode($response);
             // when there is a message throw a message.
-            if (!empty($object->Message)) {
+            if (!isset($object->Message)) {
                 $message = $object->Message;
             }
             throw new SignhostException($message);
+        } else if ($firstChar == '5') {
+            throw new SignhostException("Internal Server Error on signhost server.");
         }
 
         return false;
+    }
+
+    /**
+     * Calculate hash checksum for file upload
+     * @param $filePath
+     * @return string
+     */
+    private function calculateFileChecsum($filePath)
+    {
+        return base64_encode(pack('H*', hash_file('sha256', $filePath)));
     }
 }
