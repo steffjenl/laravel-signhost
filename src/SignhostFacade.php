@@ -7,7 +7,7 @@ namespace Signhost;
  * @package   laravel-signhost
  * @author    Stephan Eizinga <stephan@monkeysoft.nl>
  */
-class Facade extends \Illuminate\Support\Facades\Facade
+class SignhostFacade extends \Illuminate\Support\Facades\Facade
 {
     /**
      * {@inheritDoc}

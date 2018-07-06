@@ -70,8 +70,7 @@ class SignhostClient
         // Set methode actions
         $ch = $this->setExecuteMethode($ch, $method, $data, $filePath);
         // when $filePath is set we must open the file for curl
-        if (isset($filePath))
-        {
+        if (isset($filePath)) {
             // open file handler
             $fh = fopen($filePath, 'r');
             // bind file handler and curl handler
@@ -79,9 +78,9 @@ class SignhostClient
             // calculate file Checksum
             $fileChecksum = $this->calculateFileChecsum($filePath);
             // replace Content-Type header with application/pdf
-            $headers = array_replace($headers,[0 => "Content-Type: application/pdf"]);
+            $headers = array_replace($headers, [0 => "Content-Type: application/pdf"]);
             // merge filechecksum with other headers
-            $headers = array_merge($headers,["Digest: SHA256=" . $fileChecksum]);
+            $headers = array_merge($headers, ["Digest: SHA256=" . $fileChecksum]);
         }
         // Set default curl options for better security and performance
         $ch = $this->setDefaultCurlOptions($ch);
@@ -90,13 +89,13 @@ class SignhostClient
         // execute curl command
         $response = curl_exec($ch);
         // when $fh is set for file upload we must close it for free up memory and remove any lock
-        if (isset($fh))
-        {
+        if (isset($fh)) {
             // close file handler
             fclose($fh);
         }
         // check http response code
         $this->checkHTTPStatusCode(curl_getinfo($ch, CURLINFO_HTTP_CODE), $response);
+
         // return response
         return $response;
     }
@@ -116,12 +115,23 @@ class SignhostClient
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
         curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
         // When caInfoPath is set we can set curl option CURLOPT_CAINFO
-        if (is_set($caInfoPath))
-        {
+        if (isset($caInfoPath)) {
             curl_setopt($curl, CURLOPT_CAINFO, $caInfoPath);
-        }        
+        }
 
         return $curl;
+    }
+
+    /**
+     * setCaInfoPath
+     *
+     * @param $caInfoPath
+     * @return SignhostClient
+     */
+    public function setCaInfoPath($caInfoPath)
+    {
+        $this->caInfoPath = $caInfoPath;
+        return $this;
     }
 
     /**
