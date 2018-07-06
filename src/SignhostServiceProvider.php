@@ -6,7 +6,7 @@ namespace Signhost;
  * Class SignhostServiceProvider
  *
  * @package   laravel-signhost
- * @author    Stephan Eizinga <stephan.eizinga@gmail.com>
+ * @author    Stephan Eizinga <stephan@monkeysoft.nl>
  */
 class SignhostServiceProvider extends \Illuminate\Support\ServiceProvider
 {

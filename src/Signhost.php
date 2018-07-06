@@ -7,7 +7,7 @@ use Signhost\Exception\SignhostException;
  * Class Signhost
  *
  * @package   laravel-signhost
- * @author    Stephan Eizinga <stephan.eizinga@gmail.com>
+ * @author    Stephan Eizinga <stephan@monkeysoft.nl>
  */
 class Signhost
 {

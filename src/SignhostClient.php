@@ -3,13 +3,12 @@
 namespace Signhost;
 
 use Signhost\Exception\SignhostException;
-use ParagonIE\Certainty\RemoteFetch;
 
 /**
  * Class SignhostClient
  *
  * @package   laravel-signhost
- * @author    Stephan Eizinga <stephan.eizinga@gmail.com>
+ * @author    Stephan Eizinga <stephan@monkeysoft.nl>
  */
 class SignhostClient
 {
@@ -25,6 +24,10 @@ class SignhostClient
      * @var array $sharedSecret
      */
     private $sharedSecret;
+    /**
+     * @var string $caInfoPath
+     */
+    private $caInfoPath;
 
     /**
      * SignHost constructor.
@@ -34,9 +37,11 @@ class SignhostClient
      * @param string $apiKey
      * @param string $sharedSecret
      * @param string $environment
+     * @param string $caInfoPath
      */
-    public function __construct($appName, $appKey, $apiKey, $sharedSecret = null, $environment = 'production')
+    public function __construct($appName, $appKey, $apiKey, $sharedSecret = null, $environment = 'production', $caInfoPath = null)
     {
+        $this->caInfoPath = $caInfoPath;
         $this->sharedSecret = $sharedSecret;
         $this->headers = [
             "Content-Type: application/json",
@@ -102,17 +107,19 @@ class SignhostClient
      * @param $curl
      * @return mixed
      */
-    private function setDefaultCurlOptions($curl)
+    private function setDefaultCurlOptions($curl, $caInfoPath = null)
     {
-        // get latest cabundle
-        $latestBundle = (new RemoteFetch())->getLatestBundle();
         //
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($curl, CURLOPT_FRESH_CONNECT, 1);
         // Verify SSL connection is required
         curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
         curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
-        curl_setopt($curl, CURLOPT_CAINFO, $latestBundle->getFilePath());
+        // When caInfoPath is set we can set curl option CURLOPT_CAINFO
+        if (is_set($caInfoPath))
+        {
+            curl_setopt($curl, CURLOPT_CAINFO, $caInfoPath);
+        }        
 
         return $curl;
     }
@@ -178,7 +185,7 @@ class SignhostClient
 
     /**
      * Calculate hash checksum for file upload
-     * 
+     *
      * @param $filePath
      * @return string
      */

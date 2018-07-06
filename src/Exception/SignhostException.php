@@ -1,6 +1,12 @@
 <?php
 namespace Signhost\Exception;
 
+/**
+ * Class SignhostException
+ *
+ * @package   laravel-signhost
+ * @author    Stephan Eizinga <stephan@monkeysoft.nl>
+ */
 class SignhostException extends \Exception
 {
     // Redefine the exception so message isn't optional

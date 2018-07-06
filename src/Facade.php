@@ -4,9 +4,8 @@ namespace Signhost;
 /**
  * Class Facade
  *
- * @category  DevOps
  * @package   laravel-signhost
- * @author    Stephan Eizinga <stephan.eizinga@gmail.com>
+ * @author    Stephan Eizinga <stephan@monkeysoft.nl>
  */
 class Facade extends \Illuminate\Support\Facades\Facade
 {
