@@ -6,7 +6,7 @@ namespace Signhost;
  * Class SignhostServiceProvider
  *
  * @package   laravel-signhost
- * @author    Stephan Eizinga <stephan.eizinga@gmail.com>
+ * @author    Stephan Eizinga <stephan@monkeysoft.nl>
  */
 class SignhostServiceProvider extends \Illuminate\Support\ServiceProvider
 {
@@ -20,7 +20,7 @@ class SignhostServiceProvider extends \Illuminate\Support\ServiceProvider
     {
         $this->publishes(
             [
-            __DIR__.'/../../config/signhost.php' => config_path('signhost.php'),
+            __DIR__.'/../config/signhost.php' => config_path('signhost.php'),
         ]
         );
 
@@ -32,7 +32,7 @@ class SignhostServiceProvider extends \Illuminate\Support\ServiceProvider
     public function register()
     {
         $this->mergeConfigFrom(
-            __DIR__.'/../../config/signhost.php',
+            __DIR__.'/../config/signhost.php',
             'signhost'
         );
 
