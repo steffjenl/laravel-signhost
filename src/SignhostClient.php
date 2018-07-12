@@ -3,6 +3,21 @@
 namespace Signhost;
 
 use Signhost\Exception\SignhostException;
+use function curl_setopt;
+use function curl_init;
+use function curl_exec;
+use function curl_getinfo;
+use function fopen;
+use function fclose;
+use function array_replace;
+use function array_merge;
+use function json_decode;
+use function json_encode;
+use function filesize;
+use function substr;
+use function base64_encode;
+use function pack;
+use function hash_file;
 
 /**
  * Class SignhostClient
@@ -28,6 +43,27 @@ class SignhostClient
      * @var string $caInfoPath
      */
     private $caInfoPath;
+
+    /**
+     * @var bool $ignoreStatusCode
+     */
+    private $ignoreStatusCode = false;
+
+    /**
+     * @return bool
+     */
+    public function isIgnoreStatusCode(): bool
+    {
+        return $this->ignoreStatusCode;
+    }
+
+    /**
+     * @param bool $ignoreStatusCode
+     */
+    public function setIgnoreStatusCode(bool $ignoreStatusCode)
+    {
+        $this->ignoreStatusCode = $ignoreStatusCode;
+    }
 
     /**
      * SignHost constructor.
@@ -93,8 +129,12 @@ class SignhostClient
             // close file handler
             fclose($fh);
         }
-        // check http response code
-        $this->checkHTTPStatusCode(curl_getinfo($ch, CURLINFO_HTTP_CODE), $response);
+
+        if (!$this->isIgnoreStatusCode())
+        {
+            // check http response code
+            $this->checkHTTPStatusCode(curl_getinfo($ch, CURLINFO_HTTP_CODE), $response);
+        }
 
         // return response
         return $response;
