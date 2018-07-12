@@ -16,17 +16,28 @@ class Signhost
      */
     private $client;
 
+    /**
+     * Signhost constructor.
+     *
+     * @param $appName
+     * @param $appKey
+     * @param $apiKey
+     * @param null $sharedSecret
+     * @param string $environment
+     */
     public function __construct($appName, $appKey, $apiKey, $sharedSecret = null, $environment = 'production')
     {
         $this->client = new SignhostClient($appName, $appKey, $apiKey, $sharedSecret, $environment);
     }
 
     /**
+     * createTransaction
+     *
      * @param $transaction
      * @return mixed
      * @throws SignHostException
      */
-    public function CreateTransaction($transaction)
+    public function createTransaction($transaction)
     {
         $response = $this->client->execute("/transaction", "POST", $transaction);
 
@@ -34,6 +45,8 @@ class Signhost
     }
 
     /**
+     * getTransaction
+     *
      * @param $transactionId
      * @return mixed
      * @throws SignHostException
@@ -46,6 +59,8 @@ class Signhost
     }
 
     /**
+     * deleteTransaction
+     *
      * @param $transactionId
      * @return mixed
      * @throws SignHostException
@@ -58,6 +73,8 @@ class Signhost
     }
 
     /**
+     * startTransaction
+     *
      * @param $transactionId
      * @return mixed
      * @throws SignHostException
@@ -70,6 +87,8 @@ class Signhost
     }
 
     /**
+     * addOrReplaceFile
+     *
      * @param $transactionId
      * @param $fileId
      * @param $filePath
@@ -85,6 +104,8 @@ class Signhost
     }
 
     /**
+     * addOrReplaceMetadata
+     *
      * @param $transactionId
      * @param $fileId
      * @param $metadata
@@ -99,11 +120,13 @@ class Signhost
     }
 
     /**
+     * getReceipt
+     *
      * @param $transactionId
      * @return stream
      * @throws SignHostException
      */
-    public function GetReceipt($transactionId)
+    public function getReceipt($transactionId)
     {
         $response = $this->client->execute("/file/receipt/" . $transactionId, "GET");
 
@@ -111,12 +134,14 @@ class Signhost
     }
 
     /**
+     * getDocument
+     *
      * @param $transactionId
      * @param $fileId
      * @return stream
      * @throws SignHostException
      */
-    public function GetDocument($transactionId, $fileId)
+    public function getDocument($transactionId, $fileId)
     {
         $response = $this->execute("/transaction/" . $transactionId . "/file/" . rawurlencode($fileId), "GET");
 
@@ -124,13 +149,15 @@ class Signhost
     }
 
     /**
+     * validateChecksum
+     *
      * @param $masterTransactionId
      * @param $fileId
      * @param $status
      * @param $remoteChecksum
      * @return bool
      */
-    public function ValidateChecksum($masterTransactionId, $fileId, $status, $remoteChecksum)
+    public function validateChecksum($masterTransactionId, $fileId, $status, $remoteChecksum)
     {
         $localChecksum = sha1($masterTransactionId . "|" . $fileId . "|" . $status . "|" . $this->SharedSecret);
 
@@ -139,5 +166,29 @@ class Signhost
         }
 
         return hash_equals($remoteChecksum, $localChecksum);
+    }
+
+    /**
+     * setIgnoreStatusCode
+     *
+     * @param $ignoreStatusCode
+     * @return SignHost
+     */
+    public function setIgnoreStatusCode($ignoreStatusCode)
+    {
+        $this->client->setIgnoreStatusCode($ignoreStatusCode);
+        return $this;
+    }
+
+    /**
+     * setCaInfoPath
+     *
+     * @param $filePath
+     * @return SignHost
+     */
+    public function setCaInfoPath($filePath)
+    {
+        $this->client->setCaInfoPath($filePath);
+        return $this;
     }
 }
