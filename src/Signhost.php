@@ -17,6 +17,11 @@ class Signhost
     private $client;
 
     /**
+     * @var bool $returnArray
+     */
+    private $returnArray;
+
+    /**
      * Signhost constructor.
      *
      * @param $appName
@@ -28,6 +33,8 @@ class Signhost
     public function __construct($appName, $appKey, $apiKey, $sharedSecret = null, $environment = 'production')
     {
         $this->client = new SignhostClient($appName, $appKey, $apiKey, $sharedSecret, $environment);
+        // must we return array of objects?
+        $this->returnArray = config('signhost.returnArray', false);
     }
 
     /**
@@ -41,7 +48,7 @@ class Signhost
     {
         $response = $this->client->execute("/transaction", "POST", $transaction);
 
-        return json_decode($response);
+        return json_decode($response,$this->returnArray);
     }
 
     /**
@@ -55,7 +62,7 @@ class Signhost
     {
         $response = $this->client->execute("/transaction/" . $transactionId, "GET");
 
-        return json_decode($response);
+        return json_decode($response,$this->returnArray);
     }
 
     /**
@@ -69,7 +76,7 @@ class Signhost
     {
         $response = $this->client->execute("/transaction/" . $transactionId, "DELETE");
 
-        return json_decode($response);
+        return json_decode($response,$this->returnArray);
     }
 
     /**
@@ -83,7 +90,7 @@ class Signhost
     {
         $response = $this->client->execute("/transaction/" . $transactionId . "/start", "PUT");
 
-        return json_decode($response);
+        return json_decode($response,$this->returnArray);
     }
 
     /**
@@ -100,7 +107,7 @@ class Signhost
         // execute command to signhost server
         $response = $this->client->execute("/transaction/" . $transactionId . "/file/" . rawurlencode($fileId), "PUT", null, $filePath);
 
-        return json_decode($response);
+        return json_decode($response,$this->returnArray);
     }
 
     /**
@@ -116,7 +123,7 @@ class Signhost
     {
         $response = $this->client->execute("/transaction/" . $transactionId . "/file/" . rawurlencode($fileId), "PUT", $metadata);
 
-        return json_decode($response);
+        return json_decode($response,$this->returnArray);
     }
 
     /**
@@ -143,7 +150,7 @@ class Signhost
      */
     public function getDocument($transactionId, $fileId)
     {
-        $response = $this->execute("/transaction/" . $transactionId . "/file/" . rawurlencode($fileId), "GET");
+        $response = $this->client->execute("/transaction/" . $transactionId . "/file/" . rawurlencode($fileId), "GET");
 
         return $response;
     }
