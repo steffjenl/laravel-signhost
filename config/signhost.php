@@ -30,4 +30,10 @@ return [
      *
      */
     'environment' => env('SIGNHOST_ENVIRONMENT','production'),
+
+    /*
+     * Signhost.com Environment
+     *
+     */
+    'returnArray' => env('SIGNHOST_RETURNARRAY','false'),
 ];
