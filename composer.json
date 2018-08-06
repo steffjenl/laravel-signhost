@@ -20,7 +20,9 @@
   ],
   "require": {
     "php": ">=7.0.0",
-    "illuminate/support": ">=5.4.0"
+    "illuminate/support": ">=5.4.0",
+    "ext-curl": "*",
+    "ext-json": "*"
   },
   "require-dev": {
     "php": ">=7.1.3",
