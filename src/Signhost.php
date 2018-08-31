@@ -27,10 +27,10 @@ class Signhost
      * @param string $appName
      * @param string $appKey
      * @param string $apiKey
-     * @param null $sharedSecret
+     * @param string $sharedSecret
      * @param string $environment
      */
-    public function __construct(string $appName, string $appKey, string $apiKey, $sharedSecret = null, string $environment = 'production')
+    public function __construct(string $appName, string $appKey, string $apiKey, string $sharedSecret = null, string $environment = 'production')
     {
         $this->client = new SignhostClient($appName, $appKey, $apiKey, $sharedSecret, $environment);
         // must we return array of objects?
