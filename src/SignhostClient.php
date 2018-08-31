@@ -225,9 +225,9 @@ class SignhostClient
             if (!empty($object->Message)) {
                 $message = $object->Message;
             }
-            throw new SignhostException("Signhost reports: " . $statusCode . " - " . $message);
+            throw new SignhostException("Signhost reports: " . $statusCode . " - " . $message, $statusCode);
         } else if ($firstChar == '5') {
-            throw new SignhostException("Signhost reports: " . $statusCode . " - Internal Server Error on signhost server.");
+            throw new SignhostException("Signhost reports: " . $statusCode . " - Internal Server Error on signhost server.", $statusCode);
         }
 
         return false;
