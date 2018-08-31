@@ -36,7 +36,7 @@ class SignhostClient
      */
     private $headers;
     /**
-     * @var array $sharedSecret
+     * @var string $sharedSecret
      */
     private $sharedSecret;
     /**
