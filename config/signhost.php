@@ -20,8 +20,13 @@ return [
     'apikey' => env('SIGNHOST_APIKEY'),
 
     /*
-     * Signhost.com Environment
+     * Signhost.com SharedSecret
      *
+     */
+    'sharedsecret' => env('SIGNHOST_SHAREDSECRET'),
+
+    /*
+     * Defines whether to return arrays or objects
      */
     'returnArray' => env('SIGNHOST_RETURNARRAY','false'),
 

@@ -57,6 +57,7 @@ class SignhostServiceProvider extends \Illuminate\Support\ServiceProvider
             static function ($app) {
                 return new Signhost(
                     $app->make(SignhostClient::class),
+                    config('signhost.sharedsecret'),
                     config('signhost.returnArray', false)
                 );
             }
