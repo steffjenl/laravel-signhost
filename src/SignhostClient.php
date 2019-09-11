@@ -131,7 +131,7 @@ class SignhostClient
         // when $filePath is set we must open the file for curl
         if (isset($filePath)) {
             // open file handler
-            $fh = fopen($filePath, 'r');
+            $fh = fopen($filePath, 'rb');
             // bind file handler and curl handler
             curl_setopt($ch, CURLOPT_INFILE, $fh);
             // calculate file Checksum
@@ -161,11 +161,7 @@ class SignhostClient
             fclose($fh);
         }
 
-        if (!$this->isIgnoreStatusCode())
-        {
-            // check http response code
-            $this->checkHTTPStatusCode(curl_getinfo($ch, CURLINFO_HTTP_CODE), $response);
-        }
+        $this->assertSuccessfulResponse(curl_getinfo($ch, CURLINFO_HTTP_CODE), $response);
 
         // return response
         return $response;
@@ -236,29 +232,31 @@ class SignhostClient
      *
      * @param string $statusCode
      * @param string $response
-     * @return bool
      * @throws SignHostException
      */
-    private function checkHTTPStatusCode($statusCode, $response)
+    private function assertSuccessfulResponse($statusCode, $response)
     {
-        $firstChar = substr($statusCode, 0, 1);
-        if ($firstChar == '2') {
-            return true;
-        } else if ($firstChar == '4') {
-            // set empty message
-            $message = 'Unknown error';
-            // decode message from json string
-            $object = json_decode($response);
-            // when there is a message throw a message.
-            if (!empty($object->Message)) {
-                $message = $object->Message;
-            }
-            throw new SignhostException("Signhost reports: " . $statusCode . " - " . $message, $statusCode);
-        } else if ($firstChar == '5') {
-            throw new SignhostException("Signhost reports: " . $statusCode . " - Internal Server Error on signhost server.", $statusCode);
+        if ($statusCode < 400) {
+            return;
         }
 
-        return false;
+        if ($statusCode >= 400 && $statusCode <= 499) {
+            // decode message from json string
+            $object = json_decode($response, false);
+            $message = $object->Message ?? 'Unknown error';
+
+            throw new SignhostException(
+                "Response: $statusCode - $message",
+                $statusCode
+            );
+        }
+
+        if ($statusCode > 500 && $statusCode <= 599) {
+            throw new SignhostException(
+                "Response: $statusCode - Internal Server Error on Signhost.com server.",
+                $statusCode
+            );
+        }
     }
 
     /**
