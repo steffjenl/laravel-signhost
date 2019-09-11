@@ -27,6 +27,16 @@ use function hash_file;
  */
 class SignhostClient
 {
+    const OPT_CAINFOPATH = 'ca-info-path';
+    const OPT_URL        = 'url';
+    const OPT_TIMEOUT    = 'timeout';
+
+    private static $KNOWN_OPTIONS = [
+        self::OPT_CAINFOPATH,
+        self::OPT_URL,
+        self::OPT_TIMEOUT
+    ];
+
     /**
      * @var string $rootUrl
      */
@@ -35,10 +45,9 @@ class SignhostClient
      * @var array $headers
      */
     private $headers;
-    /**
-     * @var string $sharedSecret
-     */
-    private $sharedSecret;
+
+    private $options = [];
+
     /**
      * @var string $caInfoPath
      */
@@ -48,6 +57,10 @@ class SignhostClient
      * @var bool $ignoreStatusCode
      */
     private $ignoreStatusCode = false;
+    /**
+     * @var array
+     */
+    private $requestOptions;
 
     /**
      * @return bool
@@ -57,33 +70,40 @@ class SignhostClient
         return $this->ignoreStatusCode;
     }
 
-    /**
-     * @param bool $ignoreStatusCode
-     */
-    public function setIgnoreStatusCode(bool $ignoreStatusCode)
+    public function setIgnoreStatusCode(bool $ignoreStatusCode): void
     {
         $this->ignoreStatusCode = $ignoreStatusCode;
     }
 
     /**
-     * SignHost constructor.
-     *
-     * @param string $appName
-     * @param string $appKey
-     * @param string $apiKey
-     * @param string $sharedSecret
-     * @param string $environment
      * @param string $caInfoPath
+     * @return SignhostClient
      */
-    public function __construct($appName, $appKey, $apiKey, $sharedSecret = null, $environment = 'production', $caInfoPath = null)
+    public function setCaInfoPath($caInfoPath): self
     {
-        $this->caInfoPath = $caInfoPath;
-        $this->sharedSecret = $sharedSecret;
+        $this->requestOptions[self::OPT_CAINFOPATH] = $caInfoPath;
+        return $this;
+    }
+
+
+    public function __construct(
+        string $appName,
+        string $appKey,
+        string $apiKey,
+        array $requestOptions = []
+    ) {
         $this->headers = [
-            "Content-Type: application/json",
-            "Application: APPKey " . $appName . " " . $appKey,
-            "Authorization: APIKey " . $apiKey,
+            'Content-Type: application/json',
+            "Application: APPKey $appName $appKey",
+            "Authorization: APIKey $apiKey",
         ];
+
+        $this->requestOptions = $requestOptions;
+        foreach ($this->requestOptions as $optionName => $value) {
+            if (!in_array($optionName, self::$KNOWN_OPTIONS)) {
+                throw new \InvalidArgumentException("Unknown request option: $optionName");
+            }
+        }
     }
 
     /**
@@ -101,8 +121,11 @@ class SignhostClient
     {
         // get defailt headers
         $headers = $this->headers;
+
+        $targetUrl = $this->requestOptions[self::OPT_URL] ?? $this->rootUrl;
+
         // Initialize a cURL session
-        $ch = curl_init($this->rootUrl . $endpoint);
+        $ch = curl_init($targetUrl . $endpoint);
         // Set methode actions
         $ch = $this->setExecuteMethode($ch, $method, $data, $filePath);
         // when $filePath is set we must open the file for curl
@@ -124,6 +147,14 @@ class SignhostClient
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         // execute curl command
         $response = curl_exec($ch);
+
+        if (curl_errno($ch)) {
+            throw new SignhostException(
+                'Request to Signhost failed: ' . curl_error($ch),
+                0
+            );
+        }
+        
         // when $fh is set for file upload we must close it for free up memory and remove any lock
         if (isset($fh)) {
             // close file handler
@@ -146,32 +177,29 @@ class SignhostClient
      * @param $curl
      * @return mixed
      */
-    private function setDefaultCurlOptions($curl, $caInfoPath = null)
+    private function setDefaultCurlOptions($curl)
     {
-        //
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($curl, CURLOPT_FRESH_CONNECT, 1);
-        // Verify SSL connection is required
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
-        // When caInfoPath is set we can set curl option CURLOPT_CAINFO
-        if (isset($caInfoPath)) {
-            curl_setopt($curl, CURLOPT_CAINFO, $caInfoPath);
+        // Tell curl what timeout to use
+        if (isset($this->requestOptions[self::OPT_TIMEOUT])) {
+            curl_setopt($curl,CURLOPT_TIMEOUT, $this->requestOptions[self::OPT_TIMEOUT]);
         }
 
-        return $curl;
-    }
+        // Tell curl where to find the root CA's we trust.
+        if (isset($this->requestOptions[self::OPT_CAINFOPATH])) {
+            curl_setopt($curl, CURLOPT_CAINFO, $this->requestOptions[self::OPT_CAINFOPATH]);
+        }
 
-    /**
-     * setCaInfoPath
-     *
-     * @param $caInfoPath
-     * @return SignhostClient
-     */
-    public function setCaInfoPath($caInfoPath)
-    {
-        $this->caInfoPath = $caInfoPath;
-        return $this;
+        // We want the response returned from curl_exec()
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+
+        // Don't reuse connections
+        curl_setopt($curl, CURLOPT_FRESH_CONNECT, 1);
+
+        // Make sure the x509 certificate presented is valid
+        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
+
+        return $curl;
     }
 
     /**

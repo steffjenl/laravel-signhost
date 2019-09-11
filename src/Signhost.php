@@ -17,24 +17,18 @@ class Signhost
     private $client;
 
     /**
+     * Determines whether the action method returns an array. They return objects when false.
      * @var bool $returnArray
      */
     private $returnArray;
 
     /**
      * Signhost constructor.
-     *
-     * @param string $appName
-     * @param string $appKey
-     * @param string $apiKey
-     * @param string $sharedSecret
-     * @param string $environment
      */
-    public function __construct(string $appName, string $appKey, string $apiKey, string $sharedSecret = null, string $environment = 'production')
+    public function __construct(SignhostClient $client, bool $mustReturnArray)
     {
-        $this->client = new SignhostClient($appName, $appKey, $apiKey, $sharedSecret, $environment);
-        // must we return array of objects?
-        $this->returnArray = config('signhost.returnArray', false);
+        $this->client = $client;
+        $this->returnArray = $mustReturnArray;
     }
 
     /**
