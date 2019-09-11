@@ -135,7 +135,7 @@ class SignhostClient
             // bind file handler and curl handler
             curl_setopt($ch, CURLOPT_INFILE, $fh);
             // calculate file Checksum
-            $fileChecksum = $this->calculateFileChecsum($filePath);
+            $fileChecksum = $this->calculateFileChecksum($filePath);
             // replace Content-Type header with application/pdf
             $headers = array_replace($headers, [0 => "Content-Type: application/pdf"]);
             // merge filechecksum with other headers
@@ -267,7 +267,7 @@ class SignhostClient
      * @param $filePath
      * @return string
      */
-    private function calculateFileChecsum($filePath)
+    private function calculateFileChecksum($filePath)
     {
         return base64_encode(pack('H*', hash_file('sha256', $filePath)));
     }
