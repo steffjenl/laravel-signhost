@@ -49,7 +49,7 @@ class Signhost
      */
     public function createTransaction($transaction)
     {
-        $response = $this->client->execute("/transaction", "POST", $transaction);
+        $response = $this->client->performRequest("/transaction", "POST", $transaction);
 
         return json_decode($response,$this->shouldReturnArray);
     }
@@ -63,7 +63,7 @@ class Signhost
      */
     public function getTransaction($transactionId)
     {
-        $response = $this->client->execute("/transaction/" . $transactionId, "GET");
+        $response = $this->client->performRequest("/transaction/" . $transactionId, "GET");
 
         return json_decode($response,$this->shouldReturnArray);
     }
@@ -77,7 +77,7 @@ class Signhost
      */
     public function deleteTransaction($transactionId)
     {
-        $response = $this->client->execute("/transaction/" . $transactionId, "DELETE");
+        $response = $this->client->performRequest("/transaction/" . $transactionId, "DELETE");
 
         return json_decode($response,$this->shouldReturnArray);
     }
@@ -91,7 +91,7 @@ class Signhost
      */
     public function startTransaction($transactionId)
     {
-        $response = $this->client->execute("/transaction/" . $transactionId . "/start", "PUT");
+        $response = $this->client->performRequest("/transaction/" . $transactionId . "/start", "PUT");
 
         return json_decode($response,$this->shouldReturnArray);
     }
@@ -108,7 +108,7 @@ class Signhost
     public function addOrReplaceFile($transactionId, $fileId, $filePath)
     {
         // execute command to signhost server
-        $response = $this->client->execute("/transaction/" . $transactionId . "/file/" . rawurlencode($fileId), "PUT", null, $filePath);
+        $response = $this->client->performRequest("/transaction/" . $transactionId . "/file/" . rawurlencode($fileId), "PUT", null, $filePath);
 
         return json_decode($response,$this->shouldReturnArray);
     }
@@ -124,7 +124,7 @@ class Signhost
      */
     public function addOrReplaceMetadata($transactionId, $fileId, $metadata)
     {
-        $response = $this->client->execute("/transaction/" . $transactionId . "/file/" . rawurlencode($fileId), "PUT", $metadata);
+        $response = $this->client->performRequest("/transaction/" . $transactionId . "/file/" . rawurlencode($fileId), "PUT", $metadata);
 
         return json_decode($response,$this->shouldReturnArray);
     }
@@ -138,7 +138,7 @@ class Signhost
      */
     public function getReceipt($transactionId)
     {
-        $response = $this->client->execute("/file/receipt/" . $transactionId, "GET");
+        $response = $this->client->performRequest("/file/receipt/" . $transactionId, "GET");
 
         return $response;
     }
@@ -153,7 +153,7 @@ class Signhost
      */
     public function getDocument($transactionId, $fileId)
     {
-        $response = $this->client->execute("/transaction/" . $transactionId . "/file/" . rawurlencode($fileId), "GET");
+        $response = $this->client->performRequest("/transaction/" . $transactionId . "/file/" . rawurlencode($fileId), "GET");
 
         return $response;
     }
@@ -186,7 +186,7 @@ class Signhost
      */
     public function setIgnoreStatusCode($ignoreStatusCode)
     {
-        $this->client->setIgnoreStatusCode($ignoreStatusCode);
+        $this->client->setShouldIgnoreHttpErrors($ignoreStatusCode);
         return $this;
     }
 

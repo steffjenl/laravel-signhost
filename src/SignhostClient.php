@@ -3,21 +3,7 @@
 namespace Signhost;
 
 use Signhost\Exception\SignhostException;
-use function curl_setopt;
-use function curl_init;
-use function curl_exec;
-use function curl_getinfo;
-use function fopen;
-use function fclose;
-use function array_replace;
-use function array_merge;
-use function json_decode;
-use function json_encode;
-use function filesize;
-use function substr;
-use function base64_encode;
-use function pack;
-use function hash_file;
+use InvalidArgumentException;
 
 /**
  * Class SignhostClient
@@ -30,61 +16,29 @@ class SignhostClient
     const OPT_CAINFOPATH = 'ca-info-path';
     const OPT_URL        = 'url';
     const OPT_TIMEOUT    = 'timeout';
+    const OPT_IGNORE_HTTP_ERRORS = 'ignore-http-errors';
 
     private static $KNOWN_OPTIONS = [
         self::OPT_CAINFOPATH,
         self::OPT_URL,
-        self::OPT_TIMEOUT
+        self::OPT_TIMEOUT,
+        self::OPT_IGNORE_HTTP_ERRORS
     ];
 
     /**
      * @var string $rootUrl
      */
     private $rootUrl = 'https://api.signhost.com/api';
+
     /**
-     * @var array $headers
+     * @var array
      */
     private $headers;
 
-    private $options = [];
-
-    /**
-     * @var string $caInfoPath
-     */
-    private $caInfoPath;
-
-    /**
-     * @var bool $ignoreStatusCode
-     */
-    private $ignoreStatusCode = false;
     /**
      * @var array
      */
     private $requestOptions;
-
-    /**
-     * @return bool
-     */
-    public function isIgnoreStatusCode(): bool
-    {
-        return $this->ignoreStatusCode;
-    }
-
-    public function setIgnoreStatusCode(bool $ignoreStatusCode): void
-    {
-        $this->ignoreStatusCode = $ignoreStatusCode;
-    }
-
-    /**
-     * @param string $caInfoPath
-     * @return SignhostClient
-     */
-    public function setCaInfoPath($caInfoPath): self
-    {
-        $this->requestOptions[self::OPT_CAINFOPATH] = $caInfoPath;
-        return $this;
-    }
-
 
     public function __construct(
         string $appName,
@@ -100,81 +54,86 @@ class SignhostClient
 
         $this->requestOptions = $requestOptions;
         foreach ($this->requestOptions as $optionName => $value) {
-            if (!in_array($optionName, self::$KNOWN_OPTIONS)) {
-                throw new \InvalidArgumentException("Unknown request option: $optionName");
+            if (!in_array($optionName, self::$KNOWN_OPTIONS, true)) {
+                throw new InvalidArgumentException("Unknown request option: $optionName");
             }
         }
     }
 
-    /**
-     * Execute function
-     *
-     * @param $endpoint
-     * @param $method
-     * @param null $data
-     * @param null $filePath
-     * @param array $headers
-     * @return mixed
-     * @throws SignHostException
-     */
-    public function execute($endpoint, $method, $data = null, $filePath = null, $headers = [])
+    private function shouldIgnoreHttpErrors(): bool
     {
-        // get defailt headers
-        $headers = $this->headers;
-
-        $targetUrl = $this->requestOptions[self::OPT_URL] ?? $this->rootUrl;
-
-        // Initialize a cURL session
-        $ch = curl_init($targetUrl . $endpoint);
-        // Set methode actions
-        $ch = $this->setExecuteMethode($ch, $method, $data, $filePath);
-        // when $filePath is set we must open the file for curl
-        if (isset($filePath)) {
-            // open file handler
-            $fh = fopen($filePath, 'rb');
-            // bind file handler and curl handler
-            curl_setopt($ch, CURLOPT_INFILE, $fh);
-            // calculate file Checksum
-            $fileChecksum = $this->calculateFileChecksum($filePath);
-            // replace Content-Type header with application/pdf
-            $headers = array_replace($headers, [0 => "Content-Type: application/pdf"]);
-            // merge filechecksum with other headers
-            $headers = array_merge($headers, ["Digest: SHA256=" . $fileChecksum]);
-        }
-        // Set default curl options for better security and performance
-        $ch = $this->setDefaultCurlOptions($ch);
-        // Set Authorisation headers
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        // execute curl command
-        $response = curl_exec($ch);
-
-        if (curl_errno($ch)) {
-            throw new SignhostException(
-                'Request to Signhost failed: ' . curl_error($ch),
-                0
-            );
-        }
-        
-        // when $fh is set for file upload we must close it for free up memory and remove any lock
-        if (isset($fh)) {
-            // close file handler
-            fclose($fh);
-        }
-
-        $this->assertSuccessfulResponse(curl_getinfo($ch, CURLINFO_HTTP_CODE), $response);
-
-        // return response
-        return $response;
+        return $this->requestOptions[self::OPT_IGNORE_HTTP_ERRORS] ?? false;
     }
 
     /**
-     * setDefaultCurlOptions will set default secure curl options
-     *
-     * @param $curl
-     * @return mixed
+     * @throws SignhostException
      */
-    private function setDefaultCurlOptions($curl)
+    public function performRequest(string $endpoint, string $method, $data = null, $filePath = null): string
     {
+        $headers   = $this->headers;
+        $targetUrl = $this->requestOptions[self::OPT_URL] ?? $this->rootUrl;
+
+        // Initialize a cURL session
+        $curlHandle = $this->prepareHttpRequest(
+            $targetUrl . $endpoint,
+            $method,
+            $data,
+            $filePath
+        );
+
+        // When $filepath is set, provide a file descriptor to curl so it can use it to send
+        // the file along with the request.
+        if (isset($filePath)) {
+            $fh = fopen($filePath, 'rb');
+            curl_setopt($curlHandle, CURLOPT_INFILE, $fh);
+
+            $headers[0] = 'Content-Type: application/pdf';
+            $headers[]  = 'Digest: SHA256=' . base64_encode(pack('H*', hash_file('sha256', $filePath)));
+        }
+
+        try {
+            // Set the headers and perform the request.
+            curl_setopt($curlHandle, CURLOPT_HTTPHEADER, $headers);
+            $response = curl_exec($curlHandle);
+            $this->assertSuccessfulResponse($curlHandle, $response);
+
+            return $response;
+        } finally {
+            // when $fh is set for file upload we must close it for free up memory and remove any lock
+            if (isset($fh)) {
+                // close file handler
+                fclose($fh);
+            }
+        }
+    }
+
+    private function prepareHttpRequest(string $url, string $method, $data = null, $filePath = null)
+    {
+        $curl = curl_init($url);
+
+        switch ($method) {
+            case 'DELETE':
+                curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'DELETE');
+                break;
+
+            case 'PUT':
+                if (!empty($data) && empty($filePath)) {
+                    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'PUT');
+                    curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+                } elseif (empty($data) && !empty($filePath)) {
+                    curl_setopt($curl, CURLOPT_PUT, 1);
+                    curl_setopt($curl, CURLOPT_INFILESIZE, filesize($filePath));
+                } else {
+                    curl_setopt($curl, CURLOPT_PUT, 1);
+                }
+                break;
+
+            case 'POST':
+                curl_setopt($curl, CURLOPT_POST, 1);
+                curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+                break;
+        }
+
         // Tell curl what timeout to use
         if (isset($this->requestOptions[self::OPT_TIMEOUT])) {
             curl_setopt($curl,CURLOPT_TIMEOUT, $this->requestOptions[self::OPT_TIMEOUT]);
@@ -199,44 +158,20 @@ class SignhostClient
     }
 
     /**
-     * setExecuteMethode will set curl options
-     *
-     * @param $curl
-     * @param string $method
-     * @param mixed $data
-     * @param mixed $filePath
-     * @return mixed
-     */
-    private function setExecuteMethode($curl, $method, $data = null, $filePath = null)
-    {
-        if ($method == 'DELETE') {
-            curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "DELETE");
-        } else if ((empty($data) && empty($file)) && $method == 'PUT') {
-            curl_setopt($curl, CURLOPT_PUT, 1);
-        } else if ((!empty($data) && empty($file)) && $method == 'PUT') {
-            curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "PUT");
-            curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
-        } else if ((empty($data) && !empty($file)) && $method == 'PUT') {
-            curl_setopt($curl, CURLOPT_PUT, 1);
-            curl_setopt($curl, CURLOPT_INFILESIZE, filesize($filePath));
-        } else if ($method == 'POST') {
-            curl_setopt($curl, CURLOPT_POST, 1);
-            curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
-        }
-
-        return $curl;
-    }
-
-    /**
      * Check http status code for errors
-     *
-     * @param string $statusCode
-     * @param string $response
      * @throws SignHostException
      */
-    private function assertSuccessfulResponse($statusCode, $response)
+    private function assertSuccessfulResponse($curlHandle, $response)
     {
-        if ($statusCode < 400) {
+        if (curl_errno($curlHandle)) {
+            throw new SignhostException(
+                'Request to Signhost failed: ' . curl_error($curlHandle),
+                0
+            );
+        }
+
+        $statusCode = curl_getinfo($curlHandle, CURLINFO_HTTP_CODE);
+        if ($statusCode < 400 || $this->shouldIgnoreHttpErrors()) {
             return;
         }
 
@@ -253,16 +188,5 @@ class SignhostClient
             "Response code: $statusCode, message: $message",
             $statusCode
         );
-    }
-
-    /**
-     * Calculate hash checksum for file upload
-     *
-     * @param $filePath
-     * @return string
-     */
-    private function calculateFileChecksum($filePath)
-    {
-        return base64_encode(pack('H*', hash_file('sha256', $filePath)));
     }
 }
