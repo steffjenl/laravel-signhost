@@ -61,7 +61,7 @@ class Signhost
      * @return mixed
      * @throws SignHostException
      */
-    public function GetTransaction($transactionId)
+    public function getTransaction($transactionId)
     {
         $response = $this->client->execute("/transaction/" . $transactionId, "GET");
 
@@ -75,7 +75,7 @@ class Signhost
      * @return mixed
      * @throws SignHostException
      */
-    public function DeleteTransaction($transactionId)
+    public function deleteTransaction($transactionId)
     {
         $response = $this->client->execute("/transaction/" . $transactionId, "DELETE");
 
@@ -89,7 +89,7 @@ class Signhost
      * @return mixed
      * @throws SignHostException
      */
-    public function StartTransaction($transactionId)
+    public function startTransaction($transactionId)
     {
         $response = $this->client->execute("/transaction/" . $transactionId . "/start", "PUT");
 
@@ -105,7 +105,7 @@ class Signhost
      * @return mixed
      * @throws SignHostException
      */
-    public function AddOrReplaceFile($transactionId, $fileId, $filePath)
+    public function addOrReplaceFile($transactionId, $fileId, $filePath)
     {
         // execute command to signhost server
         $response = $this->client->execute("/transaction/" . $transactionId . "/file/" . rawurlencode($fileId), "PUT", null, $filePath);
@@ -122,7 +122,7 @@ class Signhost
      * @return mixed
      * @throws SignHostException
      */
-    public function AddOrReplaceMetadata($transactionId, $fileId, $metadata)
+    public function addOrReplaceMetadata($transactionId, $fileId, $metadata)
     {
         $response = $this->client->execute("/transaction/" . $transactionId . "/file/" . rawurlencode($fileId), "PUT", $metadata);
 
