@@ -20,20 +20,13 @@ return [
     'apikey' => env('SIGNHOST_APIKEY'),
 
     /*
-     * Signhost.com SharedSecret
-     *
-     */
-    'sharedsecret' => env('SIGNHOST_SHAREDSECRET'),
-
-    /*
-     * Signhost.com Environment
-     *
-     */
-    'environment' => env('SIGNHOST_ENVIRONMENT','production'),
-
-    /*
      * Signhost.com Environment
      *
      */
     'returnArray' => env('SIGNHOST_RETURNARRAY','false'),
+
+    /*
+     * Request timeout
+     */
+    'requestTimeout' => env('SIGNHOST_REQUEST_TIMEOUT',300),
 ];

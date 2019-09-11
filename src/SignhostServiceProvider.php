@@ -46,7 +46,7 @@ class SignhostServiceProvider extends \Illuminate\Support\ServiceProvider
                     config('signhost.apikey'),
                     [
                         //SignhostClient::OPT_URL => 'https://url.to.use/instead-of.default',
-                        //SignhostClient::OPT_TIMEOUT => 120,
+                        SignhostClient::OPT_TIMEOUT => config('signhost.requestTimeout'),
                         //Signhostclient::OPT_CAINFOPATH => '/path/to/cainfo'
                     ]
                 );
