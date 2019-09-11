@@ -240,23 +240,19 @@ class SignhostClient
             return;
         }
 
+        $message = 'Unknown error';
         if ($statusCode >= 400 && $statusCode <= 499) {
             // decode message from json string
             $object = json_decode($response, false);
             $message = $object->Message ?? 'Unknown error';
-
-            throw new SignhostException(
-                "Response: $statusCode - $message",
-                $statusCode
-            );
+        } elseif ($statusCode > 500 && $statusCode <= 599) {
+            $message = 'Internal server error on remote server';
         }
 
-        if ($statusCode > 500 && $statusCode <= 599) {
-            throw new SignhostException(
-                "Response: $statusCode - Internal Server Error on Signhost.com server.",
-                $statusCode
-            );
-        }
+        throw new SignhostException(
+            "Response code: $statusCode, message: $message",
+            $statusCode
+        );
     }
 
     /**
