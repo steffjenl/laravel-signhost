@@ -70,91 +70,103 @@ class SignhostClient
      */
     public function performRequest(string $endpoint, string $method, $data = null, $filePath = null): string
     {
-        $headers   = $this->headers;
-        $targetUrl = $this->requestOptions[self::OPT_URL] ?? $this->rootUrl;
-
-        // Initialize a cURL session
-        $curlHandle = $this->prepareHttpRequest(
-            $targetUrl . $endpoint,
-            $method,
-            $data,
-            $filePath
-        );
-
-        // When $filepath is set, provide a file descriptor to curl so it can use it to send
-        // the file along with the request.
-        if (isset($filePath)) {
-            $fh = fopen($filePath, 'rb');
-            curl_setopt($curlHandle, CURLOPT_INFILE, $fh);
-
-            $headers[0] = 'Content-Type: application/pdf';
-            $headers[]  = 'Digest: SHA256=' . base64_encode(pack('H*', hash_file('sha256', $filePath)));
-        }
+        $uploadFileHandle = null;
 
         try {
-            // Set the headers and perform the request.
-            curl_setopt($curlHandle, CURLOPT_HTTPHEADER, $headers);
-            $response = curl_exec($curlHandle);
-            $this->assertSuccessfulResponse($curlHandle, $response);
+            $headers   = $this->headers;
+            $targetUrl = $this->requestOptions[self::OPT_URL] ?? $this->rootUrl;
 
-            return $response;
+            // When $filepath is set, provide a file descriptor to curl so it can use it to send
+            // the file along with the request.
+            if (isset($filePath)) {
+                $uploadFileHandle = fopen($filePath, 'rb');
+
+                $headers[0] = 'Content-Type: application/pdf';
+                $headers[]  = 'Digest: SHA256=' . base64_encode(pack('H*', hash_file('sha256', $filePath)));
+            }
+
+            // Initialize a cURL session
+            return $this->performCURLRequest(
+                $method,
+                $targetUrl . $endpoint,
+                $headers,
+                $data,
+                $filePath,
+                $uploadFileHandle
+            );
         } finally {
             // when $fh is set for file upload we must close it for free up memory and remove any lock
-            if (isset($fh)) {
+            if (isset($uploadFileHandle)) {
                 // close file handler
-                fclose($fh);
+                fclose($uploadFileHandle);
             }
         }
     }
 
-    private function prepareHttpRequest(string $url, string $method, $data = null, $filePath = null)
-    {
-        $curl = curl_init($url);
+    /**
+     * @throws SignhostException
+     */
+    private function performCURLRequest(
+        string $method,
+        string $url,
+        array $headers = [],
+        $data = null,
+        $filePath = null,
+        $fileHandle = null
+    ) {
+        $curlHandle = curl_init($url);
+        curl_setopt($curlHandle, CURLOPT_HTTPHEADER, $headers);
 
         switch ($method) {
             case 'DELETE':
-                curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'DELETE');
+                curl_setopt($curlHandle, CURLOPT_CUSTOMREQUEST, 'DELETE');
                 break;
 
             case 'PUT':
                 if (!empty($data) && empty($filePath)) {
-                    curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'PUT');
-                    curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+                    curl_setopt($curlHandle, CURLOPT_CUSTOMREQUEST, 'PUT');
+                    curl_setopt($curlHandle, CURLOPT_POSTFIELDS, json_encode($data));
                 } elseif (empty($data) && !empty($filePath)) {
-                    curl_setopt($curl, CURLOPT_PUT, 1);
-                    curl_setopt($curl, CURLOPT_INFILESIZE, filesize($filePath));
+                    curl_setopt($curlHandle, CURLOPT_PUT, 1);
+                    curl_setopt($curlHandle, CURLOPT_INFILESIZE, filesize($filePath));
+                    curl_setopt($curlHandle, CURLOPT_INFILE, $fileHandle);
                 } else {
-                    curl_setopt($curl, CURLOPT_PUT, 1);
+                    curl_setopt($curlHandle, CURLOPT_PUT, 1);
                 }
                 break;
 
             case 'POST':
-                curl_setopt($curl, CURLOPT_POST, 1);
-                curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+                curl_setopt($curlHandle, CURLOPT_POST, 1);
+                curl_setopt($curlHandle, CURLOPT_POSTFIELDS, json_encode($data));
                 break;
         }
 
         // Tell curl what timeout to use
         if (isset($this->requestOptions[self::OPT_TIMEOUT])) {
-            curl_setopt($curl,CURLOPT_TIMEOUT, $this->requestOptions[self::OPT_TIMEOUT]);
+            curl_setopt($curlHandle,CURLOPT_TIMEOUT, $this->requestOptions[self::OPT_TIMEOUT]);
         }
 
         // Tell curl where to find the root CA's we trust.
         if (isset($this->requestOptions[self::OPT_CAINFOPATH])) {
-            curl_setopt($curl, CURLOPT_CAINFO, $this->requestOptions[self::OPT_CAINFOPATH]);
+            curl_setopt($curlHandle, CURLOPT_CAINFO, $this->requestOptions[self::OPT_CAINFOPATH]);
         }
 
         // We want the response returned from curl_exec()
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($curlHandle, CURLOPT_RETURNTRANSFER, 1);
 
         // Don't reuse connections
-        curl_setopt($curl, CURLOPT_FRESH_CONNECT, 1);
+        curl_setopt($curlHandle, CURLOPT_FRESH_CONNECT, 1);
 
         // Make sure the x509 certificate presented is valid
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
+        curl_setopt($curlHandle, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($curlHandle, CURLOPT_SSL_VERIFYHOST, 2);
 
-        return $curl;
+        $response = curl_exec($curlHandle);
+
+        // Set the headers and perform the request.
+        $this->assertSuccessfulResponse($curlHandle, $response);
+
+        return $response;
     }
 
     /**
