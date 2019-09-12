@@ -10,6 +10,7 @@ namespace Signhost;
  */
 class SignhostServiceProvider extends \Illuminate\Support\ServiceProvider
 {
+    public $defer = true;
 
     /**
      * Perform post-registration booting of services.
@@ -36,9 +37,30 @@ class SignhostServiceProvider extends \Illuminate\Support\ServiceProvider
             'signhost'
         );
 
-        $this->app->singleton(Signhost::class, function ($app) {
-            return new Signhost(config('signhost.appname'), config('signhost.appkey'),config('signhost.apikey'),config('signhost.sharedsecret'),config('signhost.environment'));
-        }
+        $this->app->bind(
+            SignhostClient::class,
+            static function () {
+                return new SignhostClient(
+                    config('signhost.appname'),
+                    config('signhost.appkey'),
+                    config('signhost.apikey'),
+                    [
+                        //SignhostClient::OPT_URL => 'https://url.to.use/instead-of.default',
+                        SignhostClient::OPT_TIMEOUT => config('signhost.requestTimeout'),
+                        //Signhostclient::OPT_CAINFOPATH => '/path/to/cainfo'
+                    ]
+                );
+            }
+        );
+        $this->app->bind(
+            Signhost::class,
+            static function ($app) {
+                return new Signhost(
+                    $app->make(SignhostClient::class),
+                    config('signhost.sharedsecret'),
+                    config('signhost.returnArray', false)
+                );
+            }
         );
     }
 

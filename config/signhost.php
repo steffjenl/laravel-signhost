@@ -26,14 +26,12 @@ return [
     'sharedsecret' => env('SIGNHOST_SHAREDSECRET'),
 
     /*
-     * Signhost.com Environment
-     *
-     */
-    'environment' => env('SIGNHOST_ENVIRONMENT','production'),
-
-    /*
-     * Signhost.com Environment
-     *
+     * Defines whether to return arrays or objects
      */
     'returnArray' => env('SIGNHOST_RETURNARRAY','false'),
+
+    /*
+     * Request timeout
+     */
+    'requestTimeout' => env('SIGNHOST_REQUEST_TIMEOUT',300),
 ];

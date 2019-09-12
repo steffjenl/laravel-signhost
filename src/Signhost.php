@@ -17,24 +17,27 @@ class Signhost
     private $client;
 
     /**
-     * @var bool $returnArray
+     * Determines whether the action method returns an array. They return objects when false.
+     * @var bool $shouldReturnArray
      */
-    private $returnArray;
+    private $shouldReturnArray;
+
+    /**
+     * @var string
+     */
+    private $sharedSecret;
 
     /**
      * Signhost constructor.
-     *
-     * @param string $appName
-     * @param string $appKey
-     * @param string $apiKey
-     * @param string $sharedSecret
-     * @param string $environment
      */
-    public function __construct(string $appName, string $appKey, string $apiKey, string $sharedSecret = null, string $environment = 'production')
-    {
-        $this->client = new SignhostClient($appName, $appKey, $apiKey, $sharedSecret, $environment);
-        // must we return array of objects?
-        $this->returnArray = config('signhost.returnArray', false);
+    public function __construct(
+        SignhostClient $client,
+        string $sharedSecret,
+        bool $shouldReturnArray
+    ) {
+        $this->client            = $client;
+        $this->sharedSecret      = $sharedSecret;
+        $this->shouldReturnArray = $shouldReturnArray;
     }
 
     /**
@@ -48,7 +51,7 @@ class Signhost
     {
         $response = $this->client->execute("/transaction", "POST", $transaction);
 
-        return json_decode($response,$this->returnArray);
+        return json_decode($response,$this->shouldReturnArray);
     }
 
     /**
@@ -62,7 +65,7 @@ class Signhost
     {
         $response = $this->client->execute("/transaction/" . $transactionId, "GET");
 
-        return json_decode($response,$this->returnArray);
+        return json_decode($response,$this->shouldReturnArray);
     }
 
     /**
@@ -76,7 +79,7 @@ class Signhost
     {
         $response = $this->client->execute("/transaction/" . $transactionId, "DELETE");
 
-        return json_decode($response,$this->returnArray);
+        return json_decode($response,$this->shouldReturnArray);
     }
 
     /**
@@ -90,7 +93,7 @@ class Signhost
     {
         $response = $this->client->execute("/transaction/" . $transactionId . "/start", "PUT");
 
-        return json_decode($response,$this->returnArray);
+        return json_decode($response,$this->shouldReturnArray);
     }
 
     /**
@@ -107,7 +110,7 @@ class Signhost
         // execute command to signhost server
         $response = $this->client->execute("/transaction/" . $transactionId . "/file/" . rawurlencode($fileId), "PUT", null, $filePath);
 
-        return json_decode($response,$this->returnArray);
+        return json_decode($response,$this->shouldReturnArray);
     }
 
     /**
@@ -123,7 +126,7 @@ class Signhost
     {
         $response = $this->client->execute("/transaction/" . $transactionId . "/file/" . rawurlencode($fileId), "PUT", $metadata);
 
-        return json_decode($response,$this->returnArray);
+        return json_decode($response,$this->shouldReturnArray);
     }
 
     /**
@@ -166,7 +169,7 @@ class Signhost
      */
     public function validateChecksum($masterTransactionId, $fileId, $status, $remoteChecksum)
     {
-        $localChecksum = sha1($masterTransactionId . "|" . $fileId . "|" . $status . "|" . $this->SharedSecret);
+        $localChecksum = sha1("$masterTransactionId|$fileId|$status|{$this->sharedSecret}");
 
         if (strlen($localChecksum) !== strlen($remoteChecksum)) {
             return false;
