@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection PhpUnused */
+
 namespace Signhost;
 
 use Signhost\Exception\SignhostException;
@@ -12,20 +13,20 @@ use Signhost\Exception\SignhostException;
 class Signhost
 {
     /**
-     * @var SignhostClient $client
+     * @var SignhostClient
      */
     private $client;
+
+    /**
+     * @var string Defines the secret that can be used to verify file hashes
+     */
+    private $sharedSecret;
 
     /**
      * Determines whether the action method returns an array. They return objects when false.
      * @var bool $shouldReturnArray
      */
     private $shouldReturnArray;
-
-    /**
-     * @var string
-     */
-    private $sharedSecret;
 
     /**
      * Signhost constructor.
@@ -41,164 +42,113 @@ class Signhost
     }
 
     /**
-     * createTransaction
-     *
-     * @param $transaction
-     * @return mixed
+     * @throws SignhostException
+     */
+    private function performRequest($method, $url, $data = null, $filePath = null)
+    {
+        $response = $this->client->performRequest($url, $method, $data, $filePath);
+
+        $result = @json_decode($response, $this->shouldReturnArray);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new SignhostException('Invalid JSON returned: '. json_last_error_msg());
+        }
+
+        return $result;
+    }
+
+    /**
      * @throws SignHostException
      */
     public function createTransaction($transaction)
     {
-        $response = $this->client->execute("/transaction", "POST", $transaction);
-
-        return json_decode($response,$this->shouldReturnArray);
+        return $this->performRequest(
+            'POST',
+            '/transaction',
+            $transaction
+        );
     }
 
     /**
-     * getTransaction
-     *
-     * @param $transactionId
-     * @return mixed
      * @throws SignHostException
      */
-    public function GetTransaction($transactionId)
+    public function getTransaction($transactionId)
     {
-        $response = $this->client->execute("/transaction/" . $transactionId, "GET");
-
-        return json_decode($response,$this->shouldReturnArray);
+        return $this->performRequest('GET', '/transaction/' . $transactionId);
     }
 
     /**
-     * deleteTransaction
-     *
-     * @param $transactionId
-     * @return mixed
      * @throws SignHostException
      */
-    public function DeleteTransaction($transactionId)
+    public function deleteTransaction($transactionId)
     {
-        $response = $this->client->execute("/transaction/" . $transactionId, "DELETE");
-
-        return json_decode($response,$this->shouldReturnArray);
+        return $this->performRequest('DELETE', '/transaction/' . $transactionId);
     }
 
     /**
-     * startTransaction
-     *
-     * @param $transactionId
-     * @return mixed
      * @throws SignHostException
      */
-    public function StartTransaction($transactionId)
+    public function startTransaction($transactionId)
     {
-        $response = $this->client->execute("/transaction/" . $transactionId . "/start", "PUT");
+        $response = $this->client->performRequest("/transaction/" . $transactionId . "/start", "PUT");
 
         return json_decode($response,$this->shouldReturnArray);
     }
 
     /**
-     * addOrReplaceFile
-     *
-     * @param $transactionId
-     * @param $fileId
-     * @param $filePath
-     * @return mixed
      * @throws SignHostException
      */
-    public function AddOrReplaceFile($transactionId, $fileId, $filePath)
+    public function addOrReplaceFile($transactionId, $fileId, $filePath)
     {
-        // execute command to signhost server
-        $response = $this->client->execute("/transaction/" . $transactionId . "/file/" . rawurlencode($fileId), "PUT", null, $filePath);
-
-        return json_decode($response,$this->shouldReturnArray);
+        return $this->performRequest(
+            'PUT',
+            "/transaction/$transactionId/file/" . rawurlencode($fileId),
+            null,
+            $filePath
+        );
     }
 
     /**
-     * addOrReplaceMetadata
-     *
-     * @param $transactionId
-     * @param $fileId
-     * @param $metadata
-     * @return mixed
      * @throws SignHostException
      */
-    public function AddOrReplaceMetadata($transactionId, $fileId, $metadata)
+    public function addOrReplaceMetadata($transactionId, $fileId, $metadata)
     {
-        $response = $this->client->execute("/transaction/" . $transactionId . "/file/" . rawurlencode($fileId), "PUT", $metadata);
-
-        return json_decode($response,$this->shouldReturnArray);
+        return $this->performRequest(
+            'PUT',
+            "/transaction/$transactionId/file/" . rawurlencode($fileId),
+            $metadata
+        );
     }
 
     /**
-     * getReceipt
-     *
-     * @param $transactionId
-     * @return stream
      * @throws SignHostException
      */
     public function getReceipt($transactionId)
     {
-        $response = $this->client->execute("/file/receipt/" . $transactionId, "GET");
-
-        return $response;
+        return $this->performRequest(
+            'GET',
+            "/file/receipt/$transactionId"
+        );
     }
 
     /**
-     * getDocument
-     *
-     * @param $transactionId
-     * @param $fileId
-     * @return stream
      * @throws SignHostException
      */
     public function getDocument($transactionId, $fileId)
     {
-        $response = $this->client->execute("/transaction/" . $transactionId . "/file/" . rawurlencode($fileId), "GET");
-
-        return $response;
+        return $this->performRequest(
+            'GET',
+            "/transaction/$transactionId/file/" . rawurlencode($fileId)
+        );
     }
 
-    /**
-     * validateChecksum
-     *
-     * @param $masterTransactionId
-     * @param $fileId
-     * @param $status
-     * @param $remoteChecksum
-     * @return bool
-     */
-    public function validateChecksum($masterTransactionId, $fileId, $status, $remoteChecksum)
-    {
+    public function validateChecksum(
+        string $masterTransactionId,
+        string $fileId,
+        string $status,
+        string $remoteChecksum
+    ): bool {
         $localChecksum = sha1("$masterTransactionId|$fileId|$status|{$this->sharedSecret}");
-
-        if (strlen($localChecksum) !== strlen($remoteChecksum)) {
-            return false;
-        }
-
-        return hash_equals($remoteChecksum, $localChecksum);
-    }
-
-    /**
-     * setIgnoreStatusCode
-     *
-     * @param $ignoreStatusCode
-     * @return SignHost
-     */
-    public function setIgnoreStatusCode($ignoreStatusCode)
-    {
-        $this->client->setIgnoreStatusCode($ignoreStatusCode);
-        return $this;
-    }
-
-    /**
-     * setCaInfoPath
-     *
-     * @param $filePath
-     * @return SignHost
-     */
-    public function setCaInfoPath($filePath)
-    {
-        $this->client->setCaInfoPath($filePath);
-        return $this;
+        return hash_equals($localChecksum, $remoteChecksum);
     }
 }
