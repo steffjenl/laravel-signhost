@@ -85,6 +85,12 @@ class SignhostClient
                 $headers[]  = 'Digest: SHA256=' . base64_encode(pack('H*', hash_file('sha256', $filePath)));
             }
 
+            // If method is a GET or HEAD request, unset the Content-Type headers if filePath is not given
+            // GET/HEAD methods never have a content Type
+            if ("GET" === $method || "HEAD" === $method && !isset($filePath)) {
+                unset($headers[0]); // unset Content-Type
+            }
+            
             // Initialize a cURL session
             return $this->performCURLRequest(
                 $method,
