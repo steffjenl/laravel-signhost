@@ -68,7 +68,7 @@ class SignhostClient
     /**
      * @throws SignhostException
      */
-    public function performRequest(string $endpoint, string $method, $data = null, $filePath = null): string
+    public function performRequest(string $endpoint, string $method, $data = null, $filePath = null)
     {
         $uploadFileHandle = null;
 

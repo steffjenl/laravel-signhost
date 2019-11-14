@@ -58,6 +58,21 @@ class Signhost
     }
 
     /**
+     * Returns the response directly (should be a Binary/PDF)
+     * @param $method
+     * @param $url
+     * @param null $data
+     * @param null $filePath
+     * @return mixed
+     * @throws SignhostException
+     */
+    private function performBinaryRequest($method, $url, $data = null, $filePath = null)
+    {
+        $response = $this->client->performRequest($url, $method, $data, $filePath);
+        return $response;
+    }
+
+    /**
      * @throws SignHostException
      */
     public function createTransaction($transaction)
@@ -125,7 +140,7 @@ class Signhost
      */
     public function getReceipt($transactionId)
     {
-        return $this->performRequest(
+        return $this->performBinaryRequest(
             'GET',
             "/file/receipt/$transactionId"
         );
@@ -136,7 +151,7 @@ class Signhost
      */
     public function getDocument($transactionId, $fileId)
     {
-        return $this->performRequest(
+        return $this->performBinaryRequest(
             'GET',
             "/transaction/$transactionId/file/" . rawurlencode($fileId)
         );
