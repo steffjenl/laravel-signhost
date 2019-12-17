@@ -9,18 +9,21 @@ class FileMetadata
     public $Description; // String
     public $Signers; // Map of <String,FormSets>
     public $FormSets; // Map of <String,Map of <String,FormSetField>>
+    public $SetParaph; // Boolean
 
     function __construct(
         $displayName = null,
         $displayOrder = null,
         $description = null,
         $signers = null,
-        $formSets = null) {
+        $formSets = null,
+        $SetParaph = False) {
         $this->DisplayName = $displayName;
         $this->DisplayOrder = $displayOrder;
         $this->Description = $description;
         $this->Signers = $signers;
         $this->FormSets = $formSets;
+        $this->SetParaph = $SetParaph;
     }
 
     /**
@@ -114,6 +117,25 @@ class FileMetadata
     public function setFormSets($FormSets)
     {
         $this->FormSets = $FormSets;
+
+        return $this;
+    }
+    
+    /**
+     * @return null
+     */
+    public function getSetParaph()
+    {
+        return $this->SetParaph;
+    }
+
+    /**
+     * @param false $SetParaph
+     * @return FileMetadata
+     */
+    public function setFormSets($SetParaph)
+    {
+        $this->SetParaph = $SetParaph;
 
         return $this;
     }
