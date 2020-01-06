@@ -90,7 +90,12 @@ class SignhostClient
             if ("GET" === $method || "HEAD" === $method && !isset($filePath)) {
                 unset($headers[0]); // unset Content-Type
             }
-            
+
+            // for start transaction, SignHost will require the content-lenth: 0 header.
+            if (false !== strpos($endpoint, 'start')) {
+                $headers[] = "Content-Length: 0";
+            }
+
             // Initialize a cURL session
             return $this->performCURLRequest(
                 $method,
