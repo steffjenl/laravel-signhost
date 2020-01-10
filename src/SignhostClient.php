@@ -47,7 +47,6 @@ class SignhostClient
         array $requestOptions = []
     ) {
         $this->headers = [
-            'Content-Type: application/json',
             "Application: APPKey $appName $appKey",
             "Authorization: APIKey $apiKey",
         ];
@@ -81,19 +80,19 @@ class SignhostClient
             if (isset($filePath)) {
                 $uploadFileHandle = fopen($filePath, 'rb');
 
-                $headers[0] = 'Content-Type: application/pdf';
+                $headers[] = 'Content-Type: application/pdf';
                 $headers[]  = 'Digest: SHA256=' . base64_encode(pack('H*', hash_file('sha256', $filePath)));
             }
 
-            // If method is a GET or HEAD request, unset the Content-Type headers if filePath is not given
-            // GET/HEAD methods never have a content Type
-            if ("GET" === $method || "HEAD" === $method && !isset($filePath)) {
-                unset($headers[0]); // unset Content-Type
+            // When data is set, we must add Content-Type: application/json header
+            if (isset($data) && !empty($data) && $this->isValidJson($data)) {
+                $headers[] = 'Content-Type: application/json';
+                $headers[] = 'Content-Length: ' . strlen($data);
             }
 
             // for start transaction, SignHost will require the content-lenth: 0 header.
             if (false !== strpos($endpoint, 'start')) {
-                $headers[] = "Content-Length: 0";
+                $headers[] = 'Content-Length: 0';
             }
 
             // Initialize a cURL session
@@ -112,6 +111,11 @@ class SignhostClient
                 fclose($uploadFileHandle);
             }
         }
+    }
+
+    private function isValidJson($jsonString) {
+        json_decode($jsonString);
+        return (json_last_error() == JSON_ERROR_NONE);
     }
 
     /**
