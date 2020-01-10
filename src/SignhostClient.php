@@ -85,13 +85,13 @@ class SignhostClient
             }
 
             // When data is set, we must add Content-Type: application/json header
-            if (isset($data) && !empty($data) && $this->isValidJson($data)) {
+            if (isset($data) && !empty($data)) {
                 $headers[] = 'Content-Type: application/json';
                 $headers[] = 'Content-Length: ' . strlen($data);
             }
 
-            // for start transaction, SignHost will require the content-lenth: 0 header.
-            if (false !== strpos($endpoint, 'start')) {
+            // for start transaction, SignHost will require the content-length: 0 header.
+            if (($method == 'PUT' || $method == 'POST') && empty($data) && empty($filePath)) {
                 $headers[] = 'Content-Length: 0';
             }
 
@@ -111,11 +111,6 @@ class SignhostClient
                 fclose($uploadFileHandle);
             }
         }
-    }
-
-    private function isValidJson($jsonString) {
-        json_decode($jsonString);
-        return (json_last_error() == JSON_ERROR_NONE);
     }
 
     /**
