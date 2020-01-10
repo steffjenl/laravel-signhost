@@ -496,7 +496,7 @@ class Signer
         $this->RequireSurfnetVerification = $requireSurfnetVerification;
         $this->Verifications = $verifications;
         $this->SendSignRequest = $sendSignRequest;
-        $this->SendSignRequestMessage = $signRequestMessage;
+        $this->SignRequestMessage = $signRequestMessage;
         $this->SendSignConfirmation = $sendSignConfirmation;
         $this->Language = $language;
         $this->ScribbleName = $scribbleName;
