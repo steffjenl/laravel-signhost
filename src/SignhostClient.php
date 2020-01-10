@@ -87,7 +87,7 @@ class SignhostClient
             // When data is set, we must add Content-Type: application/json header
             if (isset($data) && !empty($data)) {
                 $headers[] = 'Content-Type: application/json';
-                $headers[] = 'Content-Length: ' . strlen($data);
+                $headers[] = 'Content-Length: ' . strlen(json_encode($data));
             }
 
             // for start transaction, SignHost will require the content-length: 0 header.
