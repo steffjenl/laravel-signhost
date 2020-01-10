@@ -90,11 +90,6 @@ class SignhostClient
                 $headers[] = 'Content-Length: ' . strlen(json_encode($data));
             }
 
-            // for start transaction, SignHost will require the content-length: 0 header.
-            if (($method == 'PUT' || $method == 'POST') && empty($data) && empty($filePath)) {
-                $headers[] = 'Content-Length: 0';
-            }
-
             // Initialize a cURL session
             return $this->performCURLRequest(
                 $method,
