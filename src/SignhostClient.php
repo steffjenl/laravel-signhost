@@ -136,7 +136,8 @@ class SignhostClient
                     curl_setopt($curlHandle, CURLOPT_INFILESIZE, filesize($filePath));
                     curl_setopt($curlHandle, CURLOPT_INFILE, $fileHandle);
                 } else {
-                    curl_setopt($curlHandle, CURLOPT_PUT, 1);
+                    curl_setopt($curlHandle, CURLOPT_CUSTOMREQUEST, 'PUT');
+                    curl_setopt($curlHandle, CURLOPT_POSTFIELDS, '');
                 }
                 break;
 
