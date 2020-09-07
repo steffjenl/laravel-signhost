@@ -80,7 +80,6 @@ class SignhostClient
         $this->caInfoPath = $caInfoPath;
         $this->sharedSecret = $sharedSecret;
         $this->headers = [
-            "Content-Type: application/json",
             "Application: APPKey " . $appName . " " . $appKey,
             "Authorization: APIKey " . $apiKey,
         ];
