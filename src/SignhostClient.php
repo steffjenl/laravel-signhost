@@ -197,9 +197,10 @@ class SignhostClient
         if ($statusCode >= 400 && $statusCode <= 499) {
             // decode message from json string
             $object = json_decode($response, false);
-            $message = $object->Message ?? 'Unknown error';
-        } elseif ($statusCode > 500 && $statusCode <= 599) {
-            $message = 'Internal server error on remote server';
+            $message = $object->Message ?? 'Unknown client error';
+        } elseif ($statusCode >= 500 && $statusCode <= 599) {
+            $object = json_decode($response, false);
+            $message = $object->Message ?? 'Internal server error on remote server';            
         }
 
         throw new SignhostException(
