@@ -81,7 +81,7 @@ class SignhostClient
                 $uploadFileHandle = fopen($filePath, 'rb');
 
                 $headers[] = 'Content-Type: application/pdf';
-                $headers[]  = 'Digest: SHA256=' . base64_encode(pack('H*', hash_file('sha256', $filePath)));
+                $headers[]  = 'Digest: SHA-256=' . base64_encode(pack('H*', hash_file('sha256', $filePath)));
             }
 
             // When data is set, we must add Content-Type: application/json header
